@@ -3,9 +3,11 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.7;
 
+import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+
 error sendMoreEth();
 
-contract lottery {
+contract lottery is VRFConsumerBaseV2 {
     // State Variable
     uint private immutable i_entranceFee;
     address payable[] private s_players;
@@ -25,7 +27,7 @@ contract lottery {
 
     }
 
-    function fulfillRandomWords() internal override {
+    function fulfillRandomWords(uint requestId, uint[] memory randomWords) internal override {
 
     }
 
