@@ -39,7 +39,6 @@ contract Lottery is VRFConsumerBaseV2, KeeperCompatibleInterface {
 
     /** Events */
     event newPlayer(uint indexed _amount, address indexed _player);
-    event requestRandomWinner(uint indexed requestId);
     event PastWinners(address indexed winnners);
 
     /**
@@ -101,14 +100,20 @@ contract Lottery is VRFConsumerBaseV2, KeeperCompatibleInterface {
         bool hasPlayers = (s_players.length > 0);
         // Guarantee that this contract has money.
         bool hasBalance = (address(this).balance > 0);
-        // upkeep is required if all the above conditions are met
+        // upkeep is required if all the above conditions are met before running chainlink keeper
         upkeepNeeded = (isOpen && timePassed && hasPlayers && hasBalance);
     }
 
+    /**
+     * @dev Once `checkUpkeep` is returning `true`, this function is called
+     * and it kicks off a Chainlink VRF call to get a random winner.
+     */
     function performUpkeep(
         bytes calldata /* PerformData */
     ) external override {
+        // Store the boolean received from checkUpkeep Function
         (bool upkeepNeeded, ) = checkUpkeep("");
+        // Revert if upkeepNeeded is false.
         if (!upkeepNeeded) {
             revert Lottery__UpkeepNotNeeded(
                 address(this).balance,
@@ -116,7 +121,9 @@ contract Lottery is VRFConsumerBaseV2, KeeperCompatibleInterface {
                 uint(s_lotteryState)
             );
         }
+        // Change lottery state 
         s_lotteryState = LotteryState.CALCULATING;
+        // save what is returned from VRF in requestId
         uint requestId = i_vrfCoordinator.requestRandomWords(
             i_gaslane,
             i_subscriptionId,
@@ -124,8 +131,6 @@ contract Lottery is VRFConsumerBaseV2, KeeperCompatibleInterface {
             i_callbackGasLimit,
             NUM_WORDS
         );
-
-        emit requestRandomWinner(requestId);
     }
 
     function fulfillRandomWords(
