@@ -14,8 +14,10 @@ const networkConfig = {
     },
 }
 
+// Create a variable for local development
 const developmentChains = ["hardhat", "localhost"]
 
+// Export the two variables
 module.exports = {
     networkConfig,
     developmentChains,
