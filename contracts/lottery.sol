@@ -7,6 +7,7 @@ import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 
 error sendMoreEth();
+error Raffle__MoneyNotSent();
 
 contract lottery is VRFConsumerBaseV2 {
     // State Variable
@@ -24,6 +25,7 @@ contract lottery is VRFConsumerBaseV2 {
 
     event newPlayer(uint indexed _amount, address indexed _player);
     event requestRandomWinner(uint indexed requestId);
+    event PastWinners(address indexed winnners);
 
     constructor(
         address vrfCoordinatorV2,
@@ -64,6 +66,9 @@ contract lottery is VRFConsumerBaseV2 {
         uint indexOfWinner = randomWords[0] % s_players.length;
         address payable winner = s_players[indexOfWinner];
         s_recentWinner = winner;
+        (bool success, ) = winner.call{value: address(this).balance}("");
+        if (!success) revert Raffle__MoneyNotSent();
+        emit PastWinners(winner);
     }
 
     // function withdrawPrice(){}
