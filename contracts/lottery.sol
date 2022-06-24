@@ -8,7 +8,7 @@ import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 error Lottery__sendMoreEth();
 error Lottery__MoneyNotSent();
 error Lottery__NotAvailable();
-error Lottery__UpkeepNotNeeded(uint balance, uint numPlayers, uint raffleState);
+error Lottery__UpkeepNotNeeded(uint balance, uint numPlayers, uint LotteryState);
 
 /**@title A sample Raffle Contract
  * @author Lawal Abubakar
@@ -17,11 +17,11 @@ error Lottery__UpkeepNotNeeded(uint balance, uint numPlayers, uint raffleState);
  */
 contract Lottery is VRFConsumerBaseV2, KeeperCompatibleInterface {
     //  Types
-    enum RaffleState {
+    enum LotteryState {
         OPEN,
         CALCULATING
     }
-    // State Variable
+    /** State Variable */ 
     VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
     uint private immutable i_entranceFee;
     address payable[] private s_players;
@@ -31,16 +31,25 @@ contract Lottery is VRFConsumerBaseV2, KeeperCompatibleInterface {
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
     uint16 private constant NUM_WORDS = 1;
 
-    // Lottery variables
+    /** Lottery variables */
     address private s_recentWinner;
-    RaffleState private s_raffleState;
+    LotteryState private s_lotteryState;
     uint private s_lastTimeStamp;
     uint private immutable i_interval;
 
+    /** Events */
     event newPlayer(uint indexed _amount, address indexed _player);
     event requestRandomWinner(uint indexed requestId);
     event PastWinners(address indexed winnners);
 
+    /**
+    * @notice constructor to initialize some state variables
+    * @param vrfCoordinatorV2 address of chainlink vrf
+    * @param gaslane needed as a variable for VRF requestRandomword Method (from Chainlink account)
+    * @param subscriptionId same as gaslane
+    * @param callbackGasLimit same as gaslane
+    * @param interval required to operate chainlink keeper
+    */
     constructor(
         address vrfCoordinatorV2,
         uint _entranceFee,
@@ -49,23 +58,31 @@ contract Lottery is VRFConsumerBaseV2, KeeperCompatibleInterface {
         uint32 callbackGasLimit,
         uint interval
     ) VRFConsumerBaseV2(vrfCoordinatorV2) {
+        /** Initialize state variables with arguments */
         i_entranceFee = _entranceFee;
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
         i_gaslane = gaslane;
         i_subscriptionId = subscriptionId;
         i_callbackGasLimit = callbackGasLimit;
-        s_raffleState = RaffleState.OPEN;
+        s_lotteryState = LotteryState.OPEN;
         s_lastTimeStamp = block.timestamp;
         i_interval = interval;
     }
-
+    /** @notice This functions lets people participate in the lottery 
+    */
     function enterLottery() public payable {
-        if (msg.value < i_entranceFee) revert Lottery__sendMoreEth();
-        if (s_raffleState != RaffleState.OPEN) revert Lottery__NotAvailable();
+        // user can't send less than entraceFee
+        if (msg.value < i_entranceFee) revert Lottery__sendMoreEth(); 
+        // Lottery must be ON to participate
+        if (s_lotteryState != LotteryState.OPEN) revert Lottery__NotAvailable();
+        // Add address of new player to s_player array
         s_players.push(payable(msg.sender));
+        // Tell the world someone just joined the ongoing lottery and how much they participated with
         emit newPlayer(msg.value, msg.sender);
     }
-
+    /** @notice Function highlighted conditions that must be met before chaink VRF give us a random number
+    * @return upkeepNeeded The state of the contract before calling VRF
+    */
     function checkUpkeep(
         bytes memory /*checkData*/
     )
@@ -76,10 +93,15 @@ contract Lottery is VRFConsumerBaseV2, KeeperCompatibleInterface {
             bytes memory /* performData */
         )
     {
-        bool isOpen = (RaffleState.OPEN == s_raffleState);
+        // Lottery is Open
+        bool isOpen = (LotteryState.OPEN == s_lotteryState);
+        // difference between last timestamp of VRF execution and current timestamp is greater than interval
         bool timePassed = ((block.timestamp - s_lastTimeStamp) > i_interval);
+        // Guarantee that players have deposited money to play
         bool hasPlayers = (s_players.length > 0);
+        // Guarantee that this contract has money.
         bool hasBalance = (address(this).balance > 0);
+        // upkeep is required if all the above conditions are met
         upkeepNeeded = (isOpen && timePassed && hasPlayers && hasBalance);
     }
 
@@ -91,10 +113,10 @@ contract Lottery is VRFConsumerBaseV2, KeeperCompatibleInterface {
             revert Lottery__UpkeepNotNeeded(
                 address(this).balance,
                 s_players.length,
-                uint(s_raffleState)
+                uint(s_lotteryState)
             );
         }
-        s_raffleState = RaffleState.CALCULATING;
+        s_lotteryState = LotteryState.CALCULATING;
         uint requestId = i_vrfCoordinator.requestRandomWords(
             i_gaslane,
             i_subscriptionId,
@@ -113,7 +135,7 @@ contract Lottery is VRFConsumerBaseV2, KeeperCompatibleInterface {
         uint indexOfWinner = randomWords[0] % s_players.length;
         address payable winner = s_players[indexOfWinner];
         s_recentWinner = winner;
-        s_raffleState = RaffleState.OPEN;
+        s_lotteryState = LotteryState.OPEN;
         s_players = new address payable[](0);
         s_lastTimeStamp = block.timestamp;
         (bool success, ) = winner.call{value: address(this).balance}("");
@@ -136,8 +158,8 @@ contract Lottery is VRFConsumerBaseV2, KeeperCompatibleInterface {
         return s_recentWinner;
     }
 
-    function getRaffleState() public view returns(RaffleState) {
-        return s_raffleState;
+    function getLotteryState() public view returns(LotteryState) {
+        return s_lotteryState;
     }
 
     function getNumOfPlayers() public view returns (uint) {
