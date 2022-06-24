@@ -59,7 +59,7 @@ contract lottery is VRFConsumerBaseV2 {
         emit requestRandomWinner(requestId);
     }
 
-    function fulfillRandomWords(uint requestId, uint[] memory randomWords)
+    function fulfillRandomWords(uint /*requestId*/, uint[] memory randomWords)
         internal
         override
     {
