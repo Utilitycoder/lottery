@@ -148,8 +148,6 @@ contract Lottery is VRFConsumerBaseV2, KeeperCompatibleInterface {
         emit PastWinners(winner);
     }
 
-    // function withdrawPrice(){}
-
     // Getter / View Functions
     function getEntranceFee() public view returns (uint) {
         return i_entranceFee;
@@ -175,7 +173,9 @@ contract Lottery is VRFConsumerBaseV2, KeeperCompatibleInterface {
         return s_lastTimeStamp;
     }
 
-
+    function getInterval() public view returns (uint) {
+        return i_interval;
+    }
 
     function getRequestConfirmation() public pure returns(uint) {
         return REQUEST_CONFIRMATIONS;
