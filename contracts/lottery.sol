@@ -39,7 +39,8 @@ contract Lottery is VRFConsumerBaseV2, KeeperCompatibleInterface {
 
     /** Events */
     event newPlayer(uint indexed _amount, address indexed _player);
-    event PastWinners(address indexed winnners);
+    event recentWinner(address indexed winnners);
+    event RequestedLotteryWinner(uint256 indexed requestId);
 
     /**
     * @notice constructor to initialize some state variables
@@ -131,21 +132,30 @@ contract Lottery is VRFConsumerBaseV2, KeeperCompatibleInterface {
             i_callbackGasLimit,
             NUM_WORDS
         );
+        emit RequestedLotteryWinner(requestId);
     }
 
     function fulfillRandomWords(
         uint, /*requestId*/
         uint[] memory randomWords
     ) internal override {
+        // select the index of the winner
         uint indexOfWinner = randomWords[0] % s_players.length;
+        // Pick a winner according to the index returned above
         address payable winner = s_players[indexOfWinner];
+        // Update S_recentWinner state variable
         s_recentWinner = winner;
+        // restore LotteryState to OPEN
         s_lotteryState = LotteryState.OPEN;
+        // restore s_players array to zero
         s_players = new address payable[](0);
+        // Create a new timestamp
         s_lastTimeStamp = block.timestamp;
+        // Send money to the winner
         (bool success, ) = winner.call{value: address(this).balance}("");
         if (!success) revert Lottery__MoneyNotSent();
-        emit PastWinners(winner);
+        // Emit event with the address of the winner
+        emit recentWinner(winner);
     }
 
     // Getter / View Functions
