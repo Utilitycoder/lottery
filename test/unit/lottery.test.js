@@ -154,10 +154,6 @@ const { developmentChains } = require("../../helper-hardhat-config")
                           try {
                               const recentWinner = await lottery.getRecentWinner()
                               console.log(recentWinner)
-                              console.log(accounts[1].address)
-                              console.log(accounts[2].address)
-                              console.log(accounts[3].address)
-                              console.log(accounts[4].address)
 
                               const lotteryState = await lottery.getLotteryState()
                               const endingTimestamp = await lottery.getLatestTimeStamp()
