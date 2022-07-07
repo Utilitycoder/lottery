@@ -15,10 +15,14 @@ developmentChains.includes(network.name)
           })
           describe("fulfill Random Words", () => {
               it("works with  live ChainLink kepper and VRF, and pick a winner", async () => {
+                  console.log("Setting up test...")
                   const startingTimestamp = await lottery.getLatestTimeStamp()
                   const accounts = ethers.getSigners()
 
                   // Setup a listener
+                  console.log("Setting up Listener...")
+                  // setup listener before we enter the raffle
+                  // Just in case the blockchain moves REALLY fast
                   await new Promise(async (resolve, reject) => {
                       lottery.once("recentWinner", async () => {
                           console.log("Somebody Won!")
@@ -33,21 +37,22 @@ developmentChains.includes(network.name)
                               await expect(lottery.getPlayer(0)).to.be.reverted
                               assert.equal(recentWinner.toString(), accounts[0].address)
                               assert.equal(lotteryState, 0)
-                              assert
-                                  .equal(
-                                      winnerEndingBalance.toString(),
-                                      winnerStartingBalance.add(entranceFee)
-                                  )
-                                  .toString()
+                              assert.equal(
+                                  winnerEndingBalance.toString(),
+                                  winnerStartingBalance.add(entranceFee).toString()
+                              )
                               assert(endingTimestamp > startingTimestamp)
                               resolve()
-                          } catch (e) {
-                              reject(e)
+                          } catch (error) {
+                              console.log(error)
+                              reject(error)
                           }
-                          
                       })
-                      await lottery.enterLottery({ value: entranceFee })
+                      console.log("Entering Lottery...")
+                      const tx = await lottery.enterLottery({ value: entranceFee })
+                      console.log("Ok, time to wait...")
                       const winnerStartingBalance = await accounts[0].getBalance()
+                      //   console.log(winnerStartingBalance)
                   })
               })
           })
