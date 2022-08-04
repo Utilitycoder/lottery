@@ -2,6 +2,7 @@ import Head from "next/head"
 import Image from "next/image"
 // import ManualHeader from "../components/ManualHeader"
 import Header from "../components/Header"
+import LotteryEntrance from "../components/LotteryEntrance"
 import styles from "../styles/Home.module.css"
 
 export default function Home() {
@@ -14,9 +15,7 @@ export default function Home() {
             </Head>
             
             <Header />
-            <main className={styles.main}>
-              <h1>Hello</h1>
-            </main>
+            <LotteryEntrance />
 
             <footer className={styles.footer}>
                 <a
